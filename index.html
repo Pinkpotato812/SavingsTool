@@ -147,7 +147,7 @@ footer{padding-block:24px 0;color:var(--muted);font-size:.8rem;line-height:1.5}
 
 <section>
   <h2>Your installments</h2>
-  <p class="hint">Balance remaining, not the original amount. Pick the payment shape — a credit card minimum shrinks as the balance falls, a fixed plan does not, and the difference changes everything.</p>
+  <p class="hint">Pick the payment shape. A fixed plan is the same every month; a credit card minimum shrinks as the balance falls; and if yours follows no pattern at all, choose "Different each month" and just type the amounts.</p>
   <div id="list"></div>
   <div class="rowbtns">
     <button class="primary" id="addBtn" type="button">+ Add installment</button>
@@ -174,6 +174,7 @@ footer{padding-block:24px 0;color:var(--muted);font-size:.8rem;line-height:1.5}
       <button type="button" id="t_fixed" aria-pressed="true">Same every month</button>
       <button type="button" id="t_dec" aria-pressed="false">Gets smaller</button>
       <button type="button" id="t_card" aria-pressed="false">Credit card</button>
+      <button type="button" id="t_sched" aria-pressed="false">Different each month</button>
       <button type="button" id="t_circle" aria-pressed="false">Savings circle</button>
     </span>
     <p class="fnote" id="typehint" style="margin:0 0 12px"></p>
@@ -185,6 +186,8 @@ footer{padding-block:24px 0;color:var(--muted);font-size:.8rem;line-height:1.5}
       <div><label for="f_rate">Annual rate %</label><input type="number" id="f_rate" min="0" step="0.5" placeholder="30"></div>
       <div id="w_pct" hidden><label for="f_pct">Minimum % of balance</label><input type="number" id="f_pct" min="1" step="0.5" placeholder="5"></div>
       <div id="w_floor" hidden><label for="f_floor">Minimum floor (EGP)</label><input type="number" id="f_floor" min="0" step="10" placeholder="200"></div>
+      <div id="w_sched" hidden style="grid-column:1/-1"><label for="f_sched">The remaining payments, in order</label>
+        <textarea id="f_sched" rows="2" placeholder="1000, 700, 1200, 700, 500" style="width:100%;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.95rem;padding:8px 10px;border:1px solid var(--rule-2);background:var(--ground);color:var(--ink);border-radius:0;resize:vertical"></textarea></div>
       <div id="w_payout" hidden><label for="f_payout">Payout you receive</label><input type="number" id="f_payout" min="0" step="100" placeholder="30000"></div>
       <div id="w_recv" hidden><label for="f_recv">Already received the payout?</label>
         <select id="f_recv" style="width:100%;font-family:inherit;font-size:.95rem;padding:8px 10px;border:1px solid var(--rule-2);background:var(--ground);color:var(--ink);border-radius:0">
@@ -321,9 +324,14 @@ function addMonths(n){ var d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+n
 /* fixed     : same amount every month (ValU, Aman, most BNPL)
    declining : equal principal + interest on what's left, so it falls each month
    card      : a percentage of the balance, with a floor — falls as the balance falls  */
-function dueFor(it, bal, interest){
+function parseSched(v){
+  if(Array.isArray(v)) return v.map(Number).filter(function(x){return isFinite(x)&&x>=0;});
+  return String(v||"").split(/[^0-9.]+/).map(Number).filter(function(x){return isFinite(x)&&x>0;});
+}
+function dueFor(it, bal, interest, step){
   var t=it.type||"fixed";
   if(bal<=0.5) return 0;
+  if(t==="schedule"){ var s=it.sched||[]; return (step<s.length) ? s[step] : 0; }
   if(t==="card"){ return Math.max(bal*((+it.minPct||5)/100), (+it.minFloor||0)); }
   if(t==="declining"){ return (+it.prin||0) + interest; }
   return +it.monthly||0;
@@ -333,26 +341,28 @@ function prep(items){
   return items.filter(isDebt).map(function(i){
     var t=i.type||"fixed", bal=+i.balance||0, n=Math.max(1,+i.monthsLeft||1);
     if(t==="circle") t="fixed";
+    var sc = t==="schedule" ? parseSched(i.sched) : [];
+    if(t==="schedule" && !bal) bal = sc.reduce(function(a,b){return a+b;},0);
     return {id:i.id,name:i.name,type:t,bal:bal,monthly:+i.monthly||0,
       r:(+i.rate||0)/100/12, minPct:+i.minPct||5, minFloor:+i.minFloor||0,
-      prin: t==="declining" ? bal/n : 0, done:false};
+      prin: t==="declining" ? bal/n : 0, sched:sc, step:0, done:false};
   });
 }
 /* what each item asks for in the coming month, at today's balance */
 function dueNow(items){
   return prep(items).map(function(i){
     var int=i.bal*i.r;
-    return {id:i.id,name:i.name,type:i.type,due:Math.min(dueFor(i,i.bal,int), i.bal+int)};
+    return {id:i.id,name:i.name,type:i.type,due:Math.min(dueFor(i,i.bal,int,0), i.bal+int)};
   });
 }
 /* month 2's due, to show that it moves */
 function dueNext(items){
   var L=prep(items), out={};
   L.forEach(function(i){
-    var int=i.bal*i.r, d=Math.min(dueFor(i,i.bal,int), i.bal+int);
+    var int=i.bal*i.r, d=Math.min(dueFor(i,i.bal,int,0), i.bal+int);
     i.bal = i.bal + int - d;
     var int2=i.bal*i.r;
-    out[i.id]=Math.min(dueFor(i,i.bal,int2), i.bal+int2);
+    out[i.id]=Math.min(dueFor(i,i.bal,int2,1), i.bal+int2);
   });
   return out;
 }
@@ -364,7 +374,7 @@ function dueNext(items){
 function simulate(items, extra, mode){
   var list=prep(items);
   if(!list.some(function(i){return i.bal>0.5;})) return {months:0,interest:0,cleared:[],stalled:false,budget:0};
-  var budget = list.reduce(function(s,i){ var int=i.bal*i.r; return s+Math.min(dueFor(i,i.bal,int), i.bal+int); },0) + Math.max(0,extra);
+  var budget = list.reduce(function(s,i){ var int=i.bal*i.r; return s+Math.min(dueFor(i,i.bal,int,0), i.bal+int); },0) + Math.max(0,extra);
   var months=0, interest=0, cleared=[], MAX=720;
   var live=function(){ return list.filter(function(i){return i.bal>0.5;}); };
   var lastTotal=null, stuck=0;
@@ -374,7 +384,8 @@ function simulate(items, extra, mode){
     list.forEach(function(i){
       if(i.bal<=0.5) return;
       var int=i.bal*i.r; interest+=int;
-      var due=Math.min(dueFor(i,i.bal,int), i.bal+int);
+      var due=Math.min(dueFor(i,i.bal,int,i.step), i.bal+int);
+      i.step++;
       i.bal = i.bal + int - due;
       paidThisMonth += due;
     });
@@ -525,6 +536,7 @@ function render(){
       }
       var shape = t==="card" ? "credit card · minimum "+((+it.minPct||5))+"% of balance"
                 : t==="declining" ? "declining payment"
+                : t==="schedule" ? ("set schedule · "+((it.sched||[]).slice(0,5).map(function(x){return fmt(x);}).join(" → "))+((it.sched||[]).length>5?" …":""))
                 : t==="circle" ? "gam'eya · payout already taken, now repaying"
                 : "fixed payment";
       var trend = (Math.abs(nx-now)>1) ? (" → "+egp(nx)+" next") : "";
@@ -685,6 +697,7 @@ var TYPEHINT={
  fixed:"The same amount every month until it clears — ValU, Sympl, Talabat, Halan and most shop plans.",
  declining:"The payment falls each month because interest is charged on the shrinking balance. Enter the months left and the tool works out each month's amount.",
  card:"A percentage of whatever you owe, so it falls as the balance falls — a Premium Card or bank credit card. Paying only this clears it very slowly, and the tool will show you how slowly.",
+ schedule:"No pattern — just a list of amounts. Type the remaining payments in order, separated by commas. Leave the balance blank and the tool adds them up for you.",
  circle:"A gam'eya. Until you receive the payout your pay-ins are SAVINGS, not debt — the tool keeps them out of your debt total. After you've received it, the remaining pay-ins become money you owe."};
 var PRESETS={
  "ValU":{type:"fixed"}, "Sympl":{type:"fixed"}, "Talabat":{type:"fixed"}, "Halan":{type:"fixed"},
@@ -694,18 +707,21 @@ function setType(t){ FTYPE=t;
   $("t_fixed").setAttribute("aria-pressed", t==="fixed");
   $("t_dec").setAttribute("aria-pressed", t==="declining");
   $("t_card").setAttribute("aria-pressed", t==="card");
+  $("t_sched").setAttribute("aria-pressed", t==="schedule");
   $("t_circle").setAttribute("aria-pressed", t==="circle");
   $("w_mon").hidden = !(t==="fixed"||t==="circle");
   $("w_mos").hidden = !(t==="declining"||t==="circle");
   $("w_pct").hidden = t!=="card";
   $("w_floor").hidden = t!=="card";
+  $("w_sched").hidden = t!=="schedule";
   $("w_payout").hidden = t!=="circle";
   $("w_recv").hidden = t!=="circle";
-  $("ratefinder").hidden = (t==="circle");
+  $("ratefinder").hidden = (t==="circle"||t==="schedule");
   $("typehint").textContent=TYPEHINT[t]; }
 $("t_fixed").addEventListener("click",function(){setType("fixed");});
 $("t_dec").addEventListener("click",function(){setType("declining");});
 $("t_card").addEventListener("click",function(){setType("card");});
+$("t_sched").addEventListener("click",function(){setType("schedule");});
 $("t_circle").addEventListener("click",function(){setType("circle");});
 $("f_prov").addEventListener("change",function(){
   var v=this.value; if(!v) return;
@@ -736,7 +752,7 @@ $("rfGo").addEventListener("click",function(){
 $("addBtn").addEventListener("click",function(){ EDITING=null; $("addForm").hidden=false;
   $("f_name").value="";$("f_bal").value="";$("f_mon").value="";$("f_rate").value="";
   $("f_mos").value="";$("f_pct").value="5";$("f_floor").value="200";
-  $("f_payout").value="";$("f_recv").value="no";$("f_prov").value="";
+  $("f_payout").value="";$("f_recv").value="no";$("f_prov").value="";$("f_sched").value="";
   $("rfBody").hidden=true;$("rfOut").textContent="";
   setType("fixed"); $("f_save").textContent="Save"; $("f_name").focus(); });
 $("f_cancel").addEventListener("click",function(){ $("addForm").hidden=true; EDITING=null; });
@@ -746,8 +762,12 @@ $("addForm").addEventListener("submit",function(e){
   var rec={name:n, type:FTYPE, balance:+$("f_bal").value||0, rate:+$("f_rate").value||0,
     monthly:+$("f_mon").value||0, monthsLeft:+$("f_mos").value||0,
     minPct:+$("f_pct").value||5, minFloor:+$("f_floor").value||0,
-    payout:+$("f_payout").value||0, received: $("f_recv").value==="yes"};
+    payout:+$("f_payout").value||0, received: $("f_recv").value==="yes",
+    sched: FTYPE==="schedule" ? parseSched($("f_sched").value) : []};
   if(FTYPE==="circle" && !rec.received){ rec.balance = (+rec.monthly||0)*Math.max(0,+rec.monthsLeft||0); }
+  if(FTYPE==="schedule"){
+    if(!rec.sched.length){ setStatus("Type the payment amounts first","warn"); return; }
+    if(!rec.balance) rec.balance = rec.sched.reduce(function(a,b){return a+b;},0); }
   if(EDITING){ ITEMS=ITEMS.map(function(i){ return i.id===EDITING ? Object.assign({id:EDITING},rec) : i; }); }
   else { rec.id="i"+Date.now()+Math.floor(Math.random()*1000); ITEMS=ITEMS.concat([rec]); }
   $("addForm").hidden=true; EDITING=null; render(); saveAll();
@@ -760,6 +780,7 @@ $("list").addEventListener("click",function(e){
     $("f_mon").value=it.monthly; $("f_rate").value=it.rate;
     $("f_mos").value=it.monthsLeft||""; $("f_pct").value=it.minPct||5; $("f_floor").value=it.minFloor||0;
     $("f_payout").value=it.payout||""; $("f_recv").value=it.received?"yes":"no"; $("f_prov").value="";
+    $("f_sched").value=(it.sched&&it.sched.length)?it.sched.join(", "):"";
     setType(it.type||"fixed"); $("f_save").textContent="Update";
     $("f_name").focus(); window.scrollTo({top:$("addForm").offsetTop-80,behavior:"smooth"}); }
   if(del){ ITEMS=ITEMS.filter(function(i){return i.id!==del;}); render(); saveAll(); }
