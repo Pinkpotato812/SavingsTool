@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F5F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12161B" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Payday Plan">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Installment tracker and monthly money router">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23171E26'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='19' font-weight='700' fill='%23D8A64F' text-anchor='middle'%3EP%3C/text%3E%3C/svg%3E">
+<title>Payday Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+</head>
+<body>
+<style>
+:root{
+ --ground:#F6F5F1;--surface:#FCFCFB;--raised:#F0EEE8;
+ --ink:#171E26;--ink-2:#414D59;--muted:#6D7986;
+ --rule:#DCD8CF;--rule-2:#C9C4B8;
+ --brass:#A8741F;--brass-soft:#F4E9D4;
+ --teal:#1F6F6B;--teal-soft:#E0EDEC;
+ --rust:#9E3C28;--rust-soft:#F6E4DF;
+ --track:#E8E3D7;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --ground:#12161B;--surface:#191E25;--raised:#212832;
+ --ink:#E9E5DC;--ink-2:#BCC4CC;--muted:#8B959F;
+ --rule:#2B333D;--rule-2:#3A434E;
+ --brass:#D8A64F;--brass-soft:#3A2F1B;
+ --teal:#56AEA8;--teal-soft:#1B302F;
+ --rust:#D0765E;--rust-soft:#33211C;
+ --track:#2B333D;}}
+:root[data-theme="dark"]{
+ --ground:#12161B;--surface:#191E25;--raised:#212832;
+ --ink:#E9E5DC;--ink-2:#BCC4CC;--muted:#8B959F;
+ --rule:#2B333D;--rule-2:#3A434E;
+ --brass:#D8A64F;--brass-soft:#3A2F1B;
+ --teal:#56AEA8;--teal-soft:#1B302F;
+ --rust:#D0765E;--rust-soft:#33211C;
+ --track:#2B333D;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font-family:"Source Sans 3",system-ui,-apple-system,Segoe UI,sans-serif;font-size:16px;line-height:1.55;padding-inline:16px;padding-block:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding-block:0 60px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+header{padding-block:30px 18px;border-bottom:2px solid var(--ink);margin-bottom:0}
+h1{font-family:Spectral,Georgia,serif;font-weight:700;font-size:1.9rem;margin:0;letter-spacing:-.015em}
+.sub{color:var(--muted);font-size:.88rem;margin:4px 0 0}
+#status{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+#status.ok{color:var(--teal)} #status.warn{color:var(--rust)}
+
+section{padding-block:26px;border-bottom:1px solid var(--rule)}
+section:last-child{border-bottom:none}
+h2{font-family:Spectral,Georgia,serif;font-weight:600;font-size:1.22rem;margin:0 0 3px}
+.hint{color:var(--muted);font-size:.86rem;margin:0 0 16px}
+
+/* ---- this month ---- */
+.phase{display:inline-block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);border:1px solid var(--rule-2);padding:3px 9px;margin-bottom:10px}
+.router{border:2px solid var(--ink);background:var(--surface)}
+.rhd{background:var(--ink);color:var(--ground);padding:10px 16px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.rrow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:13px 16px;border-bottom:1px solid var(--rule)}
+.rrow:last-child{border-bottom:none}
+.rrow .lab{font-size:.95rem}
+.rrow .lab small{display:block;color:var(--muted);font-size:.79rem;line-height:1.35;margin-top:2px}
+.rrow .amt{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:1.06rem;font-weight:500;white-space:nowrap}
+.rrow.hero{background:var(--brass-soft)}
+.rrow.hero .amt{color:var(--brass);font-size:1.22rem}
+.rrow.dim .amt,.rrow.dim .lab{color:var(--muted)}
+.action{background:var(--teal-soft);border-left:4px solid var(--teal);padding:14px 16px;margin-top:14px;font-size:.95rem}
+.action b{display:block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal);margin-bottom:5px;font-weight:500}
+
+/* ---- stat strip ---- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin:18px 0 0}
+.stat{background:var(--surface);padding:13px 14px}
+.stat .v{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:1.15rem;font-weight:500;line-height:1.15}
+.stat .v.pos{color:var(--teal)}.stat .v.neg{color:var(--rust)}
+.stat .k{font-size:.76rem;color:var(--muted);margin-top:4px;line-height:1.3}
+
+/* ---- list ---- */
+.item{background:var(--surface);border:1px solid var(--rule);margin-bottom:8px}
+.item.target{border-color:var(--brass);border-left-width:4px}
+.itop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px}
+.iname{font-weight:600;font-size:.98rem}
+.iname .tag{display:inline-block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);border:1px solid var(--brass);padding:1px 5px;margin-left:7px;vertical-align:2px}
+.imeta{font-size:.82rem;color:var(--muted);margin-top:3px}
+.ibal{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:1rem;white-space:nowrap;text-align:right}
+.ibal small{display:block;color:var(--muted);font-size:.76rem;margin-top:2px}
+.iact{display:flex;gap:6px;padding:0 14px 11px}
+.empty{background:var(--surface);border:1px dashed var(--rule-2);padding:26px 18px;text-align:center;color:var(--muted);font-size:.92rem}
+
+/* ---- controls ---- */
+button{font-family:inherit;font-size:.86rem;padding:7px 13px;border:1px solid var(--rule-2);background:var(--surface);color:var(--ink);cursor:pointer;border-radius:0}
+button:hover{border-color:var(--brass);color:var(--brass)}
+button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+button.primary{background:var(--ink);color:var(--ground);border-color:var(--ink);font-weight:600}
+button.primary:hover{background:var(--brass);border-color:var(--brass);color:#fff}
+button.danger:hover{border-color:var(--rust);color:var(--rust)}
+button[disabled]{opacity:.45;cursor:not-allowed}
+.rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.seg{display:inline-flex;border:1px solid var(--rule-2)}
+.seg button{border:none;border-right:1px solid var(--rule-2);font-size:.8rem;padding:6px 11px}
+.seg button:last-child{border-right:none}
+.seg button[aria-pressed="true"]{background:var(--brass-soft);color:var(--brass);font-weight:600}
+
+form.card{background:var(--surface);border:1px solid var(--rule-2);padding:16px;margin-top:12px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(142px,1fr));gap:12px}
+label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+input{width:100%;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.95rem;padding:8px 10px;border:1px solid var(--rule-2);background:var(--ground);color:var(--ink);border-radius:0}
+input:focus{outline:2px solid var(--brass);outline-offset:-1px}
+input[type=text]{font-family:inherit}
+select.sel,select{width:100%;font-family:inherit;font-size:.95rem;padding:8px 10px;border:1px solid var(--rule-2);background:var(--ground);color:var(--ink);border-radius:0}
+select:focus{outline:2px solid var(--brass);outline-offset:-1px}
+.fnote{font-size:.78rem;color:var(--muted);margin-top:9px}
+
+.bartrack{height:7px;background:var(--track);margin-top:9px}
+.barfill{height:100%;background:var(--teal)}
+.barfill.b{background:var(--brass)}
+
+footer{padding-block:24px 0;color:var(--muted);font-size:.8rem;line-height:1.5}
+@media (max-width:480px){
+ h1{font-size:1.65rem}
+ .rrow{padding:11px 13px}
+ .fgrid{grid-template-columns:1fr 1fr}
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <h1>Payday Plan</h1>
+  <p class="sub">Enter your installments once. Every payday, this tells you exactly where the money goes.</p>
+  <div id="status">Loading…</div>
+</header>
+
+<section id="s-router">
+  <span class="phase" id="phase">—</span>
+  <h2>This month</h2>
+  <p class="hint" id="routerhint">Add your installments below and this fills in automatically.</p>
+  <div class="router" id="router"></div>
+  <div class="action" id="action" hidden></div>
+</section>
+
+<section>
+  <h2>Your installments</h2>
+  <p class="hint">Balance remaining, not the original amount. Pick the payment shape — a credit card minimum shrinks as the balance falls, a fixed plan does not, and the difference changes everything.</p>
+  <div id="list"></div>
+  <div class="rowbtns">
+    <button class="primary" id="addBtn" type="button">+ Add installment</button>
+    <span class="seg" role="group" aria-label="Payoff order">
+      <button type="button" id="mAval" aria-pressed="true">Highest rate first</button>
+      <button type="button" id="mSnow" aria-pressed="false">Smallest first</button>
+    </span>
+  </div>
+  <form class="card" id="addForm" hidden>
+    <label for="f_prov">Provider</label>
+    <select id="f_prov" style="width:100%;font-family:inherit;font-size:.95rem;padding:8px 10px;border:1px solid var(--rule-2);background:var(--ground);color:var(--ink);border-radius:0;margin-bottom:14px">
+      <option value="">— pick or type your own name —</option>
+      <option value="ValU">ValU</option>
+      <option value="Sympl">Sympl</option>
+      <option value="Talabat">Talabat</option>
+      <option value="Halan">Halan</option>
+      <option value="Premium Card">Premium Card</option>
+      <option value="Credit card">Credit card</option>
+      <option value="Money Fellows">Money Fellows (gam'eya)</option>
+      <option value="Other">Other</option>
+    </select>
+    <label>Payment shape</label>
+    <span class="seg" role="group" aria-label="Payment shape" style="margin-bottom:14px;flex-wrap:wrap">
+      <button type="button" id="t_fixed" aria-pressed="true">Same every month</button>
+      <button type="button" id="t_dec" aria-pressed="false">Gets smaller</button>
+      <button type="button" id="t_card" aria-pressed="false">Credit card</button>
+      <button type="button" id="t_circle" aria-pressed="false">Savings circle</button>
+    </span>
+    <p class="fnote" id="typehint" style="margin:0 0 12px"></p>
+    <div class="fgrid">
+      <div><label for="f_name">Name</label><input type="text" id="f_name" placeholder="ValU — laptop"></div>
+      <div><label for="f_bal">Balance left (EGP)</label><input type="number" id="f_bal" min="0" step="1" placeholder="18000"></div>
+      <div id="w_mon"><label for="f_mon">Monthly payment</label><input type="number" id="f_mon" min="0" step="1" placeholder="1500"></div>
+      <div id="w_mos" hidden><label for="f_mos">Months left</label><input type="number" id="f_mos" min="1" step="1" placeholder="12"></div>
+      <div><label for="f_rate">Annual rate %</label><input type="number" id="f_rate" min="0" step="0.5" placeholder="30"></div>
+      <div id="w_pct" hidden><label for="f_pct">Minimum % of balance</label><input type="number" id="f_pct" min="1" step="0.5" placeholder="5"></div>
+      <div id="w_floor" hidden><label for="f_floor">Minimum floor (EGP)</label><input type="number" id="f_floor" min="0" step="10" placeholder="200"></div>
+      <div id="w_payout" hidden><label for="f_payout">Payout you receive</label><input type="number" id="f_payout" min="0" step="100" placeholder="30000"></div>
+      <div id="w_recv" hidden><label for="f_recv">Already received the payout?</label>
+        <select id="f_recv" style="width:100%;font-family:inherit;font-size:.95rem;padding:8px 10px;border:1px solid var(--rule-2);background:var(--ground);color:var(--ink);border-radius:0">
+          <option value="no">No — still saving toward it</option>
+          <option value="yes">Yes — now I'm paying it back</option>
+        </select></div>
+    </div>
+    <div id="ratefinder" style="border-top:1px solid var(--rule);margin-top:14px;padding-top:12px">
+      <button type="button" id="rfToggle" style="font-size:.82rem">Don't know the rate? Work it out →</button>
+      <div id="rfBody" hidden style="margin-top:12px">
+        <div class="fgrid">
+          <div><label for="rf_settle">Early-settlement figure</label><input type="number" id="rf_settle" min="0" step="1" placeholder="18000"></div>
+          <div><label for="rf_pay">Monthly payment</label><input type="number" id="rf_pay" min="0" step="1" placeholder="1500"></div>
+          <div><label for="rf_n">Payments left</label><input type="number" id="rf_n" min="1" step="1" placeholder="14"></div>
+        </div>
+        <p class="fnote">Call the provider and ask what it would cost to settle today. That figure against your remaining payments reveals the real rate.</p>
+        <div class="rowbtns"><button type="button" id="rfGo">Calculate and fill in</button></div>
+        <p class="fnote" id="rfOut" style="color:var(--brass)"></p>
+      </div>
+    </div>
+    <p class="fnote">Don't know the rate? Ask the provider for the <em>early-settlement figure</em> and compare it with the total of your remaining payments. The gap is the interest.</p>
+    <div class="rowbtns">
+      <button class="primary" type="submit" id="f_save">Save</button>
+      <button type="button" id="f_cancel">Cancel</button>
+    </div>
+  </form>
+</section>
+
+<section>
+  <h2>Debt-free projection</h2>
+  <p class="hint">Assumes you keep paying every minimum, add your whole surplus to the target, and roll each cleared payment onto the next one.</p>
+  <div class="stats" id="proj"></div>
+  <div id="order"></div>
+</section>
+
+<section>
+  <h2>Your numbers</h2>
+  <p class="hint">Planned living cost is what the plan budgets each month. Log your real spending below and update it from the projection.</p>
+  <form class="card" id="cfgForm">
+    <div class="fgrid">
+      <div><label for="c_income">Monthly income</label><input type="number" id="c_income" min="0" step="100"></div>
+      <div><label for="c_living">Planned living cost</label><input type="number" id="c_living" min="0" step="100"></div>
+      <div><label for="c_ef">Emergency fund saved</label><input type="number" id="c_ef" min="0" step="100"></div>
+      <div><label for="c_inv">Total invested</label><input type="number" id="c_inv" min="0" step="100"></div>
+    </div>
+    <div class="rowbtns"><button class="primary" type="submit">Save numbers</button></div>
+  </form>
+</section>
+
+<section>
+  <h2>Spending &amp; income</h2>
+  <p class="hint">Log what you actually spend and earn. The tool projects your real living cost from it — and tells you if a purchase just created new debt.</p>
+  <div class="stats" id="spendstats"></div>
+
+  <form class="card" id="spForm">
+    <span class="seg" role="group" aria-label="Entry type" style="margin-bottom:14px">
+      <button type="button" id="k_exp" aria-pressed="true">Expense</button>
+      <button type="button" id="k_inc" aria-pressed="false">Income</button>
+    </span>
+    <div class="fgrid">
+      <div><label for="sp_amt">Amount (EGP)</label><input type="number" id="sp_amt" min="0" step="1" placeholder="150"></div>
+      <div id="w_cat"><label for="sp_cat">Category</label>
+        <select id="sp_cat" class="sel"></select></div>
+      <div id="w_src" hidden><label for="sp_src">Source</label>
+        <select id="sp_src" class="sel"></select></div>
+      <div id="w_meth"><label for="sp_meth">Paid with</label>
+        <select id="sp_meth" class="sel">
+          <option value="cash">Cash</option>
+          <option value="debit">Debit card</option>
+          <option value="inst">Installment</option>
+        </select></div>
+      <div id="w_which" hidden><label for="sp_which">Which plan</label>
+        <select id="sp_which" class="sel"></select></div>
+      <div><label for="sp_note">Note (optional)</label><input type="text" id="sp_note" placeholder="weekly shop"></div>
+    </div>
+    <p class="fnote" id="instWarn" hidden style="color:var(--rust)">Buying on installment adds new debt. The plan only works if this stays at zero until your current plans are cleared.</p>
+    <div class="rowbtns">
+      <button class="primary" type="submit">Add</button>
+      <button type="button" id="useActual">Use projection as my living cost</button>
+    </div>
+  </form>
+
+  <div id="catbreak"></div>
+  <div id="splist"></div>
+</section>
+
+<section>
+  <h2>Monthly check-in</h2>
+  <p class="hint">Once a month, update the balances above, then log it. Five numbers, one minute.</p>
+  <div class="stats" id="track"></div>
+  <div class="rowbtns">
+    <button class="primary" type="button" id="logBtn">Log this month</button>
+    <button type="button" id="newInst">I took a new installment</button>
+  </div>
+  <div id="loglist"></div>
+</section>
+
+<section>
+  <h2>Backup</h2>
+  <p class="hint">Everything is saved in this browser on this device only — it does not sync and clearing your browser data erases it. Export a backup every month or two.</p>
+  <div class="rowbtns">
+    <button class="primary" type="button" id="expBtn">Export backup file</button>
+    <label for="impFile" style="display:inline-block;margin:0"><span style="display:inline-block;font-size:.86rem;padding:7px 13px;border:1px solid var(--rule-2);background:var(--surface);cursor:pointer">Restore from backup</span></label>
+    <input type="file" id="impFile" accept="application/json,.json" style="display:none">
+    <button type="button" class="danger" id="wipeBtn">Erase everything</button>
+  </div>
+</section>
+
+<footer>
+  <p>Phases run in order: one month of outgoings as a starter buffer → clear the installments → six months of living costs → invest. The tool moves you on automatically when each target is met.</p>
+  <p>Projections assume balances and rates as entered and no new borrowing. They are estimates, not guarantees.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var DB=null, CFG={income:0,living:0,ef:0,invested:0,mode:"avalanche"}, ITEMS=[], LOGS=[], SPEND={entries:[]}, READY=false, EDITING=null;
+var $=function(id){return document.getElementById(id);};
+var CATS=["Housing & Property","Food & Groceries","Shopping","Transportation & Car","Bills & Utilities",
+ "Healthcare","Entertainment & Lifestyle","Travel & Holidays","Subscriptions","Personal Care",
+ "Family & Gifts","Education & Development","Savings","Investments","Other / Uncategorized"];
+var SRCS=["Salary","Allowance","Bonus","Freelance","Sold something","Other"];
+var TRANSFER=["Savings","Investments"];
+var EKIND="exp";
+function fmt(n){ if(!isFinite(n))n=0; return Math.round(n).toLocaleString("en-US"); }
+function egp(n){ return "EGP "+fmt(n); }
+function esc(s){ var d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
+function monthKey(d){ d=d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function addMonths(n){ var d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+n);
+  return d.toLocaleDateString("en-GB",{month:"short",year:"numeric"}); }
+
+/* ---------- payment shapes ---------- */
+/* fixed     : same amount every month (ValU, Aman, most BNPL)
+   declining : equal principal + interest on what's left, so it falls each month
+   card      : a percentage of the balance, with a floor — falls as the balance falls  */
+function dueFor(it, bal, interest){
+  var t=it.type||"fixed";
+  if(bal<=0.5) return 0;
+  if(t==="card"){ return Math.max(bal*((+it.minPct||5)/100), (+it.minFloor||0)); }
+  if(t==="declining"){ return (+it.prin||0) + interest; }
+  return +it.monthly||0;
+}
+function isDebt(i){ return (i.type||"fixed")!=="circle" || !!i.received; }
+function prep(items){
+  return items.filter(isDebt).map(function(i){
+    var t=i.type||"fixed", bal=+i.balance||0, n=Math.max(1,+i.monthsLeft||1);
+    if(t==="circle") t="fixed";
+    return {id:i.id,name:i.name,type:t,bal:bal,monthly:+i.monthly||0,
+      r:(+i.rate||0)/100/12, minPct:+i.minPct||5, minFloor:+i.minFloor||0,
+      prin: t==="declining" ? bal/n : 0, done:false};
+  });
+}
+/* what each item asks for in the coming month, at today's balance */
+function dueNow(items){
+  return prep(items).map(function(i){
+    var int=i.bal*i.r;
+    return {id:i.id,name:i.name,type:i.type,due:Math.min(dueFor(i,i.bal,int), i.bal+int)};
+  });
+}
+/* month 2's due, to show that it moves */
+function dueNext(items){
+  var L=prep(items), out={};
+  L.forEach(function(i){
+    var int=i.bal*i.r, d=Math.min(dueFor(i,i.bal,int), i.bal+int);
+    i.bal = i.bal + int - d;
+    var int2=i.bal*i.r;
+    out[i.id]=Math.min(dueFor(i,i.bal,int2), i.bal+int2);
+  });
+  return out;
+}
+
+/* ---------- payoff simulation ----------
+   The debt budget is held CONSTANT at (today's total minimums + surplus).
+   As a card's minimum falls or a plan clears, the freed money automatically
+   flows to the target. That is the rollover, modelled exactly.              */
+function simulate(items, extra, mode){
+  var list=prep(items);
+  if(!list.some(function(i){return i.bal>0.5;})) return {months:0,interest:0,cleared:[],stalled:false,budget:0};
+  var budget = list.reduce(function(s,i){ var int=i.bal*i.r; return s+Math.min(dueFor(i,i.bal,int), i.bal+int); },0) + Math.max(0,extra);
+  var months=0, interest=0, cleared=[], MAX=720;
+  var live=function(){ return list.filter(function(i){return i.bal>0.5;}); };
+  var lastTotal=null, stuck=0;
+  while(live().length && months<MAX){
+    months++;
+    var paidThisMonth=0;
+    list.forEach(function(i){
+      if(i.bal<=0.5) return;
+      var int=i.bal*i.r; interest+=int;
+      var due=Math.min(dueFor(i,i.bal,int), i.bal+int);
+      i.bal = i.bal + int - due;
+      paidThisMonth += due;
+    });
+    var pot = budget - paidThisMonth;
+    if(pot>0.5){
+      var act=live();
+      act.sort(mode==="snowball" ? function(a,b){return a.bal-b.bal;}
+                                 : function(a,b){return (b.r-a.r) || (a.bal-b.bal);});
+      for(var k=0;k<act.length && pot>0.5;k++){ var pay=Math.min(pot,act[k].bal); act[k].bal-=pay; pot-=pay; }
+    }
+    list.forEach(function(i){ if(i.bal<=0.5 && !i.done){ i.done=true; cleared.push({name:i.name,month:months}); } });
+    var tot=list.reduce(function(s,i){return s+Math.max(0,i.bal);},0);
+    if(lastTotal!==null && tot >= lastTotal-0.5){ stuck++; if(stuck>3) return {months:months,interest:interest,cleared:cleared,stalled:true,budget:budget}; }
+    else stuck=0;
+    lastTotal=tot;
+  }
+  return {months:months, interest:interest, cleared:cleared, stalled:months>=MAX, budget:budget};
+}
+function targetName(items,mode){
+  var a=items.filter(function(i){return isDebt(i) && (+i.balance||0)>0.5;});
+  if(!a.length) return null;
+  a.sort(mode==="snowball" ? function(x,y){return (+x.balance)-(+y.balance);}
+                           : function(x,y){return ((+y.rate||0)-(+x.rate||0)) || ((+x.balance)-(+y.balance));});
+  return a[0].name;
+}
+
+/* ---------- the plan ---------- */
+function plan(){
+  var income=+CFG.income||0, ef=+CFG.ef||0;
+  var living=+CFG.living||0;
+  if(!living){ var _e=(SPEND.entries||[]).filter(function(x){return x.k!=="inc" && TRANSFER.indexOf(x.c)<0;}), _n=new Date(), _dim=new Date(_n.getFullYear(),_n.getMonth()+1,0).getDate();
+    var _s=_e.reduce(function(a,x){return a+(+x.a||0);},0); if(_s>0) living=Math.round(_s/_n.getDate()*_dim); }
+  var dues=dueNow(ITEMS), nexts=dueNext(ITEMS);
+  var minTotal=dues.reduce(function(s,d){return s+d.due;},0);
+  var nextTotal=ITEMS.reduce(function(s,i){return s+(nexts[i.id]||0);},0);
+  var balTotal=ITEMS.filter(isDebt).reduce(function(s,i){return s+(+i.balance||0);},0);
+  var circles=ITEMS.filter(function(i){return (i.type==="circle") && !i.received;});
+  var circlePayIn=circles.reduce(function(s,i){return s+(+i.monthly||0);},0);
+  var circleDue=circles.reduce(function(s,i){return s+((+i.monthly||0)*Math.max(0,+i.monthsLeft||0));},0);
+  var circlePayout=circles.reduce(function(s,i){return s+(+i.payout||0);},0);
+  var surplus=income-living-minTotal-circlePayIn;
+  var outgo=living+minTotal+circlePayIn;
+  var phase, label, rows=[], act="";
+  var tgt=targetName(ITEMS,CFG.mode);
+  var varies = Math.abs(nextTotal-minTotal) > 1 && balTotal>0.5;
+  var minNote = ITEMS.length+" plan"+(ITEMS.length===1?"":"s")+(varies ? " · next month "+egp(nextTotal) : "");
+
+  if(!income){
+    phase=-1; label="Start here";
+    rows.push({l:"Set your monthly income",s:"Scroll down to Your numbers",a:0,dim:true});
+    rows.push({l:"Add your installments",s:"ValU, Sympl, Talabat, Halan, Premium Card, credit card, Money Fellows",a:0,dim:true});
+    return {phase:phase,label:label,rows:rows,act:"Add your income and your installments and this screen fills in. Money Fellows goes in as a savings circle, not a debt — pick that shape and the tool keeps it out of your debt total.",
+      surplus:0,minTotal:minTotal,nextTotal:nextTotal,varies:false,balTotal:balTotal,outgo:outgo,
+      income:0,living:living,ef:ef,tgt:tgt,dues:dues,nexts:nexts,
+      circlePayIn:circlePayIn,circleDue:circleDue,circlePayout:circlePayout,circles:circles};
+  }
+  if(surplus<0){
+    phase=0; label="Phase 0 · Shortfall";
+    rows.push({l:"Essential living",a:living});
+    rows.push({l:"Payments due this month",s:minNote,a:minTotal});
+    if(circlePayIn) rows.push({l:"Savings circle pay-ins",s:"Not debt — you get this back as a lump sum",a:circlePayIn});
+    rows.push({l:"Shortfall",s:"Committed outgoings exceed your income",a:surplus,hero:true});
+    act="You are short by "+egp(-surplus)+" this month. Nothing else here matters until that closes. Call your providers about extending a term to cut the monthly payment — it costs more in total interest, but survival comes before optimisation.";
+  } else if(ef<outgo && outgo>0){
+    phase=1; label="Phase 1 · Starter buffer";
+    rows.push({l:"Essential living",a:living});
+    rows.push({l:"Payments due this month",s:minNote,a:minTotal});
+    if(circlePayIn) rows.push({l:"Savings circle pay-ins",s:"Not debt — you get this back as a lump sum",a:circlePayIn});
+    rows.push({l:"→ Emergency fund",s:"Money market fund. Target "+egp(outgo),a:surplus,hero:true});
+    var need=Math.max(0,outgo-ef), mo=surplus>0?Math.ceil(need/surplus):0;
+    act="Put "+egp(surplus)+" into an EGP money market fund. "+egp(need)+" to go — about "+mo+" month"+(mo===1?"":"s")+". Do this before attacking the debt: without a buffer the next surprise goes straight back onto an installment plan.";
+  } else if(balTotal>0.5){
+    phase=2; label="Phase 2 · Clear the debt";
+    rows.push({l:"Essential living",a:living});
+    rows.push({l:"Payments due this month",s:minNote,a:minTotal});
+    if(circlePayIn) rows.push({l:"Savings circle pay-ins",s:"Not debt — you get this back as a lump sum",a:circlePayIn});
+    rows.push({l:"→ Extra payment",s:tgt?("All of it onto: "+tgt):"",a:surplus,hero:true});
+    rows.push({l:"Investing",s:"Not yet — clearing debt beats any investment you can buy",a:0,dim:true});
+    act="Pay the "+egp(minTotal)+" due, then put the whole "+egp(surplus)+" surplus onto "+(tgt||"your target")+"."
+      + (varies ? " Next month's minimums fall to "+egp(nextTotal)+" — send the difference to the target too, don't absorb it into spending. Keeping the total you pay toward debt fixed at "+egp(minTotal+surplus)+" every month is what makes this work." : "");
+  } else if(ef<6*living && living>0){
+    phase=3; label="Phase 3 · Full emergency fund";
+    var free=income-living;
+    rows.push({l:"Essential living",a:living});
+    rows.push({l:"→ Emergency fund",s:"Target "+egp(6*living),a:free,hero:true});
+    var need3=Math.max(0,6*living-ef), mo3=free>0?Math.ceil(need3/free):0;
+    act="Debt free. Build the full buffer: "+egp(need3)+" to go, about "+mo3+" month"+(mo3===1?"":"s")+" at "+egp(free)+". Then you start investing.";
+  } else {
+    phase=4; label="Phase 4 · Investing";
+    var disc=Math.min(2000,Math.max(0,income-living));
+    var inv=Math.max(0,income-living-disc);
+    rows.push({l:"Essential living",a:living});
+    rows.push({l:"Discretionary — guilt-free",s:"Budgeted, in cash, no credit",a:disc});
+    rows.push({l:"→ EGP certificates / money market",s:"40% — stability, tax-free",a:inv*0.40,hero:true});
+    rows.push({l:"→ Global equity ETF (USD)",s:"40% — accumulate, wire quarterly not monthly",a:inv*0.40,hero:true});
+    rows.push({l:"→ Gold fund",s:"10% — devaluation hedge",a:inv*0.10,hero:true});
+    rows.push({l:"→ EGX equity fund",s:"10% — capped, the index is thin",a:inv*0.10,hero:true});
+    act="Invest "+egp(inv)+" this month. Send the EGP sleeves now; let the global ETF share build in the money market fund and wire it abroad once a quarter — monthly wires cost about 4.5% of every contribution.";
+  }
+  return {phase:phase,label:label,rows:rows,act:act,surplus:surplus,minTotal:minTotal,nextTotal:nextTotal,
+          varies:varies,balTotal:balTotal,outgo:outgo,income:income,living:living,ef:ef,tgt:tgt,dues:dues,nexts:nexts,
+          circlePayIn:circlePayIn,circleDue:circleDue,circlePayout:circlePayout,circles:circles};
+}
+
+/* ---------- render ---------- */
+function render(){
+  var p=plan();
+  $("phase").textContent=p.label;
+  $("routerhint").textContent = ITEMS.length ? "Based on "+ITEMS.length+" installment"+(ITEMS.length===1?"":"s")+" and the numbers you've saved."
+    : "Add your installments below and this fills in automatically.";
+
+  var r=$("router"); r.innerHTML="";
+  var hd=document.createElement("div"); hd.className="rhd";
+  hd.innerHTML='<span>Income '+esc(egp(p.income))+'</span><span>Savings rate '+(p.income?Math.round(Math.max(0,p.surplus)/p.income*100):0)+'%</span>';
+  r.appendChild(hd);
+  p.rows.forEach(function(row){
+    var d=document.createElement("div");
+    d.className="rrow"+(row.hero?" hero":"")+(row.dim?" dim":"");
+    d.innerHTML='<div class="lab">'+esc(row.l)+(row.s?'<small>'+esc(row.s)+'</small>':'')+'</div>'+
+                '<div class="amt">'+esc(egp(row.a))+'</div>';
+    r.appendChild(d);
+  });
+  var a=$("action");
+  if(p.act){ a.hidden=false; a.innerHTML='<b>Do this</b>'+esc(p.act); } else a.hidden=true;
+
+  /* list */
+  var L=$("list"); L.innerHTML="";
+  if(!ITEMS.length){
+    L.innerHTML='<div class="empty">No installments yet. Add each one — provider, balance left, monthly payment, rate.</div>';
+  } else {
+    var dmap={}; p.dues.forEach(function(d){ dmap[d.id]=d.due; });
+    ITEMS.forEach(function(it){
+      var isT = it.name===p.tgt && (+it.balance||0)>0.5;
+      var now=dmap[it.id]||0, nx=p.nexts[it.id]||0;
+      var t=it.type||"fixed";
+      var d=document.createElement("div");
+      if(t==="circle" && !it.received){
+        var mleft=Math.max(0,+it.monthsLeft||0), toPay=(+it.monthly||0)*mleft;
+        d.className="item"; d.style.borderLeft="4px solid var(--teal)";
+        d.innerHTML='<div class="itop"><div><div class="iname">'+esc(it.name)+
+          '<span class="tag" style="color:var(--teal);border-color:var(--teal)">savings, not debt</span></div>'+
+          '<div class="imeta">'+esc(egp(+it.monthly||0))+'/mo for '+mleft+' more month'+(mleft===1?'':'s')+
+          ' → payout '+esc(egp(+it.payout||0))+'</div></div>'+
+          '<div class="ibal" style="color:var(--teal)">'+esc(egp(toPay))+'<small>left to pay in</small></div></div>'+
+          '<div class="iact"><button type="button" data-ed="'+esc(it.id)+'">Edit</button>'+
+          '<button type="button" class="danger" data-del="'+esc(it.id)+'">Remove</button></div>';
+        L.appendChild(d); return;
+      }
+      var shape = t==="card" ? "credit card · minimum "+((+it.minPct||5))+"% of balance"
+                : t==="declining" ? "declining payment"
+                : t==="circle" ? "gam'eya · payout already taken, now repaying"
+                : "fixed payment";
+      var trend = (Math.abs(nx-now)>1) ? (" → "+egp(nx)+" next") : "";
+      d.className="item"+(isT?" target":"");
+      d.innerHTML='<div class="itop"><div><div class="iname">'+esc(it.name)+(isT?'<span class="tag">attack this</span>':'')+'</div>'+
+        '<div class="imeta">'+esc(shape)+' · '+esc((+it.rate||0))+'% a year</div></div>'+
+        '<div class="ibal">'+esc(egp(+it.balance||0))+'<small>'+esc(egp(now))+' due'+esc(trend)+'</small></div></div>'+
+        '<div class="iact"><button type="button" data-ed="'+esc(it.id)+'">Edit</button>'+
+        '<button type="button" class="danger" data-del="'+esc(it.id)+'">Remove</button></div>';
+      L.appendChild(d);
+    });
+  }
+
+  /* projection */
+  var sim=simulate(ITEMS, Math.max(0,p.surplus), CFG.mode);
+  var simMin=simulate(ITEMS, 0, CFG.mode);
+  var P=$("proj"); P.innerHTML="";
+  function stat(v,k,cls){ var d=document.createElement("div"); d.className="stat";
+    d.innerHTML='<div class="v'+(cls?" "+cls:"")+'">'+esc(v)+'</div><div class="k">'+esc(k)+'</div>'; P.appendChild(d); }
+  if(!ITEMS.length){ stat("—","Add installments to see your debt-free date"); }
+  else if(sim.stalled){
+    stat(egp(p.balTotal),"Total balance owed");
+    stat("Never","At these payments the balance never clears","neg");
+    stat(egp(Math.max(0,p.surplus)),"Add this as an extra payment to break the trap","pos");
+  }
+  else {
+    stat(egp(p.balTotal),"Total balance owed");
+    stat(sim.months+" mo","Debt free by "+addMonths(sim.months),"pos");
+    stat(simMin.stalled ? "Never" : Math.max(0,simMin.months-sim.months)+" mo",
+         simMin.stalled ? "On minimums alone it never clears" : "Sooner than paying minimums only",
+         simMin.stalled ? "neg" : "pos");
+    stat(egp(sim.interest),"Interest you'll still pay");
+    stat(egp(sim.budget),"Keep paying this toward debt every month","pos");
+  }
+  if(p.circlePayout>0){
+    stat(egp(p.circleDue),"Still to pay into your circles");
+    stat(egp(p.circlePayout),"Lump sum coming back to you","pos");
+  }
+  var O=$("order"); O.innerHTML="";
+  if(sim.cleared.length){
+    var t=document.createElement("div"); t.style.marginTop="14px";
+    t.innerHTML='<p class="hint" style="margin-bottom:8px">Order they fall, with the rollover:</p>';
+    sim.cleared.forEach(function(c,i){
+      var row=document.createElement("div"); row.className="rrow"; row.style.border="1px solid var(--rule)";
+      row.style.background="var(--surface)"; row.style.marginBottom="-1px";
+      row.innerHTML='<div class="lab"><span class="mono" style="color:var(--muted)">'+(i+1)+'</span> &nbsp;'+esc(c.name)+'</div>'+
+                    '<div class="amt" style="font-size:.9rem">'+esc(addMonths(c.month))+'</div>';
+      t.appendChild(row);
+    });
+    O.appendChild(t);
+  }
+
+  /* tracker */
+  var T=$("track"); T.innerHTML="";
+  function tstat(v,k,cls,pct,alt){ var d=document.createElement("div"); d.className="stat";
+    var bar = (pct!=null) ? '<div class="bartrack"><div class="barfill'+(alt?" b":"")+'" style="width:'+Math.max(0,Math.min(100,pct))+'%"></div></div>' : '';
+    d.innerHTML='<div class="v'+(cls?" "+cls:"")+'">'+esc(v)+'</div><div class="k">'+esc(k)+'</div>'+bar; T.appendChild(d); }
+  var efMonths = p.outgo>0 ? (p.ef/p.outgo) : 0;
+  tstat(egp(p.balTotal),"Debt remaining — the only number that matters now", p.balTotal>0?"neg":"pos", p.balTotal>0?100:0, true);
+  tstat((p.income?Math.round(Math.max(0,p.surplus)/p.income*100):0)+"%","Savings rate — target 60%+", null, p.income?Math.max(0,p.surplus)/p.income*100/0.6:0);
+  tstat(efMonths.toFixed(1)+" mo","Emergency fund — 1 then 6 months", efMonths>=1?"pos":null, efMonths/6*100);
+  tstat(egp(CFG.invested||0),"Total invested", (CFG.invested>0)?"pos":null);
+  tstat(egp(p.income),"Monthly income — your second-biggest lever");
+
+  var LG=$("loglist"); LG.innerHTML="";
+  if(LOGS.length){
+    var box=document.createElement("div"); box.style.marginTop="14px";
+    box.innerHTML='<p class="hint" style="margin-bottom:8px">History</p>';
+    LOGS.slice(0,12).forEach(function(g){
+      var row=document.createElement("div"); row.className="rrow"; row.style.border="1px solid var(--rule)";
+      row.style.background="var(--surface)"; row.style.marginBottom="-1px";
+      row.innerHTML='<div class="lab">'+esc(g.id)+(g.newInst?' <span style="color:var(--rust)">· new installment taken</span>':'')+'</div>'+
+        '<div class="amt" style="font-size:.88rem">debt '+esc(egp(g.debt||0))+'</div>';
+      box.appendChild(row);
+    });
+    LG.appendChild(box);
+  }
+
+  /* spending */
+  var SS=$("spendstats"); SS.innerHTML="";
+  var ents=(SPEND.entries||[]).slice();
+  var now=new Date(), dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate(), day=now.getDate();
+  var exp=ents.filter(function(e){return e.k!=="inc";});
+  var inc=ents.filter(function(e){return e.k==="inc";});
+  var liveExp=exp.filter(function(e){ return TRANSFER.indexOf(e.c)<0; });
+  var spent=liveExp.reduce(function(a,e){return a+(+e.a||0);},0);
+  var moved=exp.filter(function(e){return TRANSFER.indexOf(e.c)>=0;}).reduce(function(a,e){return a+(+e.a||0);},0);
+  var earned=inc.reduce(function(a,e){return a+(+e.a||0);},0);
+  var onInst=exp.filter(function(e){return e.m==="inst";}).reduce(function(a,e){return a+(+e.a||0);},0);
+  var perDay=day>0?spent/day:0, projected=perDay*dim;
+  function sstat(v,k,cls){ var d=document.createElement("div"); d.className="stat";
+    d.innerHTML='<div class="v'+(cls?" "+cls:"")+'">'+esc(v)+'</div><div class="k">'+esc(k)+'</div>'; SS.appendChild(d); }
+  sstat(egp(spent), "Living spend, "+day+" of "+dim+" days");
+  sstat(egp(perDay), "Daily average");
+  sstat(egp(projected), "Projected month total", (CFG.living&&projected>+CFG.living)?"neg":"pos");
+  if(CFG.living) sstat(egp((+CFG.living||0)-projected), "Versus planned "+egp(CFG.living), projected>(+CFG.living)?"neg":"pos");
+  if(moved) sstat(egp(moved), "Into savings &amp; investments — not counted as living cost", "pos");
+  if(earned) sstat(egp(earned), "Income logged this month", "pos");
+  if(onInst) sstat(egp(onInst), "Bought on installment this month — new debt", "neg");
+
+  /* category breakdown */
+  var CB=$("catbreak"); CB.innerHTML="";
+  if(exp.length){
+    var by={}; exp.forEach(function(e){ var c=e.c||"Other / Uncategorized"; by[c]=(by[c]||0)+(+e.a||0); });
+    var keys=Object.keys(by).sort(function(a,b){return by[b]-by[a];});
+    var max=by[keys[0]]||1;
+    var box=document.createElement("div"); box.style.marginTop="16px";
+    box.innerHTML='<p class="hint" style="margin-bottom:8px">Where it went this month</p>';
+    keys.forEach(function(c){
+      var isT=TRANSFER.indexOf(c)>=0;
+      var row=document.createElement("div"); row.style.padding="8px 0"; row.style.borderBottom="1px solid var(--rule)";
+      row.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;font-size:.9rem">'+
+        '<span>'+esc(c)+(isT?' <span style="color:var(--teal);font-size:.78rem">· not a living cost</span>':'')+'</span>'+
+        '<span class="mono">'+esc(egp(by[c]))+'</span></div>'+
+        '<div class="bartrack" style="margin-top:5px"><div class="barfill'+(isT?'':' b')+'" style="width:'+(by[c]/max*100)+'%"></div></div>';
+      box.appendChild(row);
+    });
+    CB.appendChild(box);
+  }
+
+  var SL=$("splist"); SL.innerHTML="";
+  if(ents.length){
+    var box2=document.createElement("div"); box2.style.marginTop="16px";
+    box2.innerHTML='<p class="hint" style="margin-bottom:8px">Entries — '+ents.length+' this month</p>';
+    ents.slice().reverse().slice(0,60).forEach(function(e,idx){
+      var realIdx = ents.length-1-idx;
+      var isInc = e.k==="inc";
+      var tagTxt = isInc ? (e.c||"income")
+                 : (e.m==="inst" ? "installment"+(e.mi?" · "+e.mi:"") : e.m==="debit" ? "debit card" : "cash");
+      var row=document.createElement("div"); row.className="rrow"; row.style.border="1px solid var(--rule)";
+      row.style.background="var(--surface)"; row.style.marginBottom="-1px";
+      row.innerHTML='<div class="lab">'+esc(isInc?(e.n||e.c||"income"):(e.c||"—"))+
+        '<small>'+esc(tagTxt)+(e.n&&!isInc?' · '+esc(e.n):'')+' · '+esc(e.d||"")+'</small></div>'+
+        '<div class="amt" style="font-size:.92rem;'+(isInc?'color:var(--teal)':'')+'">'+(isInc?'+':'')+esc(egp(+e.a||0))+
+        ' <button type="button" class="danger" data-sp="'+realIdx+'" style="margin-left:8px;padding:3px 8px;font-size:.75rem">&times;</button></div>';
+      box2.appendChild(row);
+    });
+    SL.appendChild(box2);
+  }
+
+  $("mAval").setAttribute("aria-pressed", CFG.mode!=="snowball");
+  $("mSnow").setAttribute("aria-pressed", CFG.mode==="snowball");
+  if(!document.activeElement || document.activeElement.tagName!=="INPUT"){
+    $("c_income").value=CFG.income||""; $("c_living").value=CFG.living||"";
+    $("c_ef").value=CFG.ef||""; $("c_inv").value=CFG.invested||"";
+  }
+}
+
+/* ---------- persistence ---------- */
+function saveCfg(){ saveAll(); }
+function onWriteErr(e){ var s=$("status"); s.className="warn";
+  s.textContent = (e && e.code==="invalid_argument") ? "Read-only — changes not saved" : "Could not save — try again"; }
+function setStatus(t,c){ var s=$("status"); s.className=c||""; s.textContent=t; }
+
+/* ---------- events ---------- */
+var FTYPE="fixed";
+var TYPEHINT={
+ fixed:"The same amount every month until it clears — ValU, Sympl, Talabat, Halan and most shop plans.",
+ declining:"The payment falls each month because interest is charged on the shrinking balance. Enter the months left and the tool works out each month's amount.",
+ card:"A percentage of whatever you owe, so it falls as the balance falls — a Premium Card or bank credit card. Paying only this clears it very slowly, and the tool will show you how slowly.",
+ circle:"A gam'eya. Until you receive the payout your pay-ins are SAVINGS, not debt — the tool keeps them out of your debt total. After you've received it, the remaining pay-ins become money you owe."};
+var PRESETS={
+ "ValU":{type:"fixed"}, "Sympl":{type:"fixed"}, "Talabat":{type:"fixed"}, "Halan":{type:"fixed"},
+ "Premium Card":{type:"card",minPct:5,minFloor:200}, "Credit card":{type:"card",minPct:5,minFloor:200},
+ "Money Fellows":{type:"circle"}, "Other":{type:"fixed"}};
+function setType(t){ FTYPE=t;
+  $("t_fixed").setAttribute("aria-pressed", t==="fixed");
+  $("t_dec").setAttribute("aria-pressed", t==="declining");
+  $("t_card").setAttribute("aria-pressed", t==="card");
+  $("t_circle").setAttribute("aria-pressed", t==="circle");
+  $("w_mon").hidden = !(t==="fixed"||t==="circle");
+  $("w_mos").hidden = !(t==="declining"||t==="circle");
+  $("w_pct").hidden = t!=="card";
+  $("w_floor").hidden = t!=="card";
+  $("w_payout").hidden = t!=="circle";
+  $("w_recv").hidden = t!=="circle";
+  $("ratefinder").hidden = (t==="circle");
+  $("typehint").textContent=TYPEHINT[t]; }
+$("t_fixed").addEventListener("click",function(){setType("fixed");});
+$("t_dec").addEventListener("click",function(){setType("declining");});
+$("t_card").addEventListener("click",function(){setType("card");});
+$("t_circle").addEventListener("click",function(){setType("circle");});
+$("f_prov").addEventListener("change",function(){
+  var v=this.value; if(!v) return;
+  if(!$("f_name").value.trim() || PRESETS[$("f_name").value.trim()]) $("f_name").value = v==="Other"?"":v;
+  var pr=PRESETS[v]; if(!pr) return;
+  if(pr.minPct) $("f_pct").value=pr.minPct;
+  if(pr.minFloor) $("f_floor").value=pr.minFloor;
+  setType(pr.type); });
+/* implied annual rate from an early-settlement quote */
+function impliedRate(B,P,n){
+  if(!(B>0&&P>0&&n>0)) return null;
+  if(P*n<=B) return 0;
+  var lo=0, hi=3.0;
+  var pv=function(r){ return r===0 ? P*n : P*(1-Math.pow(1+r,-n))/r; };
+  for(var k=0;k<200;k++){ var mid=(lo+hi)/2; if(pv(mid)>B) lo=mid; else hi=mid; }
+  return ((lo+hi)/2)*12*100;
+}
+$("rfToggle").addEventListener("click",function(){ var b=$("rfBody"); b.hidden=!b.hidden; });
+$("rfGo").addEventListener("click",function(){
+  var B=+$("rf_settle").value||0, P=+$("rf_pay").value||0, n=+$("rf_n").value||0;
+  var r=impliedRate(B,P,n);
+  if(r===null){ $("rfOut").textContent="Fill in all three."; return; }
+  var extra=P*n-B;
+  $("rfOut").textContent = "About "+r.toFixed(1)+"% a year. You'd pay "+egp(extra)+" more by letting it run than by settling today.";
+  $("f_rate").value=r.toFixed(1);
+  if(!$("f_bal").value) $("f_bal").value=B;
+  if(!$("f_mon").value) $("f_mon").value=P; });
+$("addBtn").addEventListener("click",function(){ EDITING=null; $("addForm").hidden=false;
+  $("f_name").value="";$("f_bal").value="";$("f_mon").value="";$("f_rate").value="";
+  $("f_mos").value="";$("f_pct").value="5";$("f_floor").value="200";
+  $("f_payout").value="";$("f_recv").value="no";$("f_prov").value="";
+  $("rfBody").hidden=true;$("rfOut").textContent="";
+  setType("fixed"); $("f_save").textContent="Save"; $("f_name").focus(); });
+$("f_cancel").addEventListener("click",function(){ $("addForm").hidden=true; EDITING=null; });
+$("addForm").addEventListener("submit",function(e){
+  e.preventDefault();
+  var n=$("f_name").value.trim()||"Installment";
+  var rec={name:n, type:FTYPE, balance:+$("f_bal").value||0, rate:+$("f_rate").value||0,
+    monthly:+$("f_mon").value||0, monthsLeft:+$("f_mos").value||0,
+    minPct:+$("f_pct").value||5, minFloor:+$("f_floor").value||0,
+    payout:+$("f_payout").value||0, received: $("f_recv").value==="yes"};
+  if(FTYPE==="circle" && !rec.received){ rec.balance = (+rec.monthly||0)*Math.max(0,+rec.monthsLeft||0); }
+  if(EDITING){ ITEMS=ITEMS.map(function(i){ return i.id===EDITING ? Object.assign({id:EDITING},rec) : i; }); }
+  else { rec.id="i"+Date.now()+Math.floor(Math.random()*1000); ITEMS=ITEMS.concat([rec]); }
+  $("addForm").hidden=true; EDITING=null; render(); saveAll();
+});
+$("list").addEventListener("click",function(e){
+  var ed=e.target.getAttribute && e.target.getAttribute("data-ed");
+  var del=e.target.getAttribute && e.target.getAttribute("data-del");
+  if(ed){ var it=ITEMS.filter(function(i){return i.id===ed;})[0]; if(!it) return;
+    EDITING=ed; $("addForm").hidden=false; $("f_name").value=it.name; $("f_bal").value=it.balance;
+    $("f_mon").value=it.monthly; $("f_rate").value=it.rate;
+    $("f_mos").value=it.monthsLeft||""; $("f_pct").value=it.minPct||5; $("f_floor").value=it.minFloor||0;
+    $("f_payout").value=it.payout||""; $("f_recv").value=it.received?"yes":"no"; $("f_prov").value="";
+    setType(it.type||"fixed"); $("f_save").textContent="Update";
+    $("f_name").focus(); window.scrollTo({top:$("addForm").offsetTop-80,behavior:"smooth"}); }
+  if(del){ ITEMS=ITEMS.filter(function(i){return i.id!==del;}); render(); saveAll(); }
+});
+$("cfgForm").addEventListener("submit",function(e){ e.preventDefault();
+  CFG.income=+$("c_income").value||0; CFG.living=+$("c_living").value||0;
+  CFG.ef=+$("c_ef").value||0; CFG.invested=+$("c_inv").value||0;
+  render(); saveCfg(); });
+$("mAval").addEventListener("click",function(){ CFG.mode="avalanche"; render(); saveCfg(); });
+$("mSnow").addEventListener("click",function(){ CFG.mode="snowball"; render(); saveCfg(); });
+function saveSpend(){ saveAll(); }
+function fillSel(el,list,cur){ el.innerHTML=""; list.forEach(function(v){ var o=document.createElement("option");
+  o.value=v; o.textContent=v; if(v===cur)o.selected=true; el.appendChild(o); }); }
+fillSel($("sp_cat"),CATS,"Food & Groceries");
+fillSel($("sp_src"),SRCS,"Salary");
+function refreshWhich(){
+  var el=$("sp_which"), names=ITEMS.map(function(i){return i.name;});
+  if(!names.length) names=["(no plans added yet)"];
+  var cur=el.value; fillSel(el,names,cur);
+}
+function setKind(k){ EKIND=k;
+  $("k_exp").setAttribute("aria-pressed",k==="exp");
+  $("k_inc").setAttribute("aria-pressed",k==="inc");
+  $("w_cat").hidden = k!=="exp"; $("w_meth").hidden = k!=="exp";
+  $("w_src").hidden = k!=="inc";
+  if(k==="inc"){ $("w_which").hidden=true; $("instWarn").hidden=true; } else methChanged();
+}
+function methChanged(){ var isInst=$("sp_meth").value==="inst";
+  $("w_which").hidden=!isInst; $("instWarn").hidden=!isInst; if(isInst) refreshWhich(); }
+$("k_exp").addEventListener("click",function(){setKind("exp");});
+$("k_inc").addEventListener("click",function(){setKind("inc");});
+$("sp_meth").addEventListener("change",methChanged);
+$("spForm").addEventListener("submit",function(e){ e.preventDefault();
+  var a=+$("sp_amt").value||0; if(a<=0){ $("sp_amt").focus(); return; }
+  var rec={a:a, n:$("sp_note").value.trim(), d:new Date().toISOString().slice(0,10), k:EKIND};
+  if(EKIND==="inc"){ rec.c=$("sp_src").value; }
+  else { rec.c=$("sp_cat").value; rec.m=$("sp_meth").value;
+         if(rec.m==="inst") rec.mi=$("sp_which").value; }
+  SPEND.entries=(SPEND.entries||[]).concat([rec]);
+  $("sp_amt").value=""; $("sp_note").value=""; $("sp_amt").focus();
+  render(); saveSpend(); });
+$("splist").addEventListener("click",function(e){
+  var i=e.target.getAttribute && e.target.getAttribute("data-sp");
+  if(i===null||i===undefined) return;
+  SPEND.entries=(SPEND.entries||[]).filter(function(_,k){ return k!==+i; });
+  render(); saveSpend(); });
+$("useActual").addEventListener("click",function(){
+  var e=(SPEND.entries||[]).filter(function(x){ return x.k!=="inc" && TRANSFER.indexOf(x.c)<0; });
+  if(!e.length){ setStatus("Log some spending first","warn"); return; }
+  var n=new Date(), dim=new Date(n.getFullYear(),n.getMonth()+1,0).getDate();
+  var sp=e.reduce(function(a,x){return a+(+x.a||0);},0);
+  CFG.living=Math.round(sp/n.getDate()*dim); render(); saveCfg(); });
+function writeLog(flag){ var p=plan();
+  LOGMAP[monthKey()]={debt:p.balTotal, ef:p.ef, invested:+CFG.invested||0,
+    income:p.income, rate:p.income?Math.max(0,p.surplus)/p.income:0, newInst:flag};
+  rebuildLogs(); render(); saveAll();
+  setStatus("Logged "+monthKey(),"ok"); }
+$("logBtn").addEventListener("click",function(){ writeLog(false); });
+$("newInst").addEventListener("click",function(){ writeLog(true); });
+
+/* ---------- storage: this device only ---------- */
+var KEY="paydayplan.v1", SPENDMAP={}, LOGMAP={};
+function rebuildLogs(){ LOGS=Object.keys(LOGMAP).sort().reverse().map(function(k){
+  return {id:k, debt:+LOGMAP[k].debt||0, newInst:!!LOGMAP[k].newInst}; }); }
+function saveAll(){
+  SPENDMAP[monthKey()]=SPEND.entries||[];
+  try{ localStorage.setItem(KEY, JSON.stringify({v:1,cfg:CFG,items:ITEMS,spend:SPENDMAP,logs:LOGMAP})); 
+       setStatus("Saved on this device","ok"); }
+  catch(e){ setStatus("Could not save — browser storage is blocked or full","warn"); }
+}
+function loadAll(){
+  var raw=null;
+  try{ raw=localStorage.getItem(KEY); }catch(e){ setStatus("Browser storage blocked — nothing will save","warn"); return; }
+  if(!raw){ setStatus("New file — saved on this device as you type","ok"); return; }
+  try{
+    var o=JSON.parse(raw);
+    if(o.cfg) CFG=Object.assign(CFG,o.cfg);
+    if(Array.isArray(o.items)) ITEMS=o.items;
+    SPENDMAP=o.spend||{}; LOGMAP=o.logs||{};
+    SPEND={entries:SPENDMAP[monthKey()]||[]};
+    rebuildLogs();
+    setStatus("Saved on this device","ok");
+  }catch(e){ setStatus("Saved data could not be read","warn"); }
+}
+function doExport(){
+  var blob=new Blob([JSON.stringify({v:1,cfg:CFG,items:ITEMS,spend:SPENDMAP,logs:LOGMAP},null,2)],{type:"application/json"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="payday-plan-backup-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+}
+$("expBtn").addEventListener("click",doExport);
+$("impFile").addEventListener("change",function(e){
+  var f=e.target.files && e.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{ var o=JSON.parse(r.result);
+      if(o.cfg) CFG=Object.assign({income:0,living:0,ef:0,invested:0,mode:"avalanche"},o.cfg);
+      ITEMS=Array.isArray(o.items)?o.items:[];
+      SPENDMAP=o.spend||{}; LOGMAP=o.logs||{};
+      SPEND={entries:SPENDMAP[monthKey()]||[]};
+      rebuildLogs(); render(); saveAll(); setStatus("Backup restored","ok");
+    }catch(err){ setStatus("That file could not be read","warn"); }
+  };
+  r.readAsText(f); e.target.value="";
+});
+$("wipeBtn").addEventListener("click",function(){
+  if(!window.confirm("Erase everything saved on this device? Export a backup first if you want to keep it.")) return;
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  CFG={income:0,living:0,ef:0,invested:0,mode:"avalanche"}; ITEMS=[]; SPEND={entries:[]};
+  SPENDMAP={}; LOGMAP={}; LOGS=[]; render(); setStatus("Erased","warn");
+});
+
+loadAll();
+render();
+})();
+</script>
+</body>
+</html>
